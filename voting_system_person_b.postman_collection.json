@@ -1,0 +1,62 @@
+{
+  "info": {
+    "name": "Voting System - Person B (Anonymous Layer)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost/voting-system/api" },
+    { "key": "token_hash", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Issue Token (Day-1 test endpoint)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"election_id\": 1\n}"
+        },
+        "url": "{{base_url}}/issue-token.php"
+      }
+    },
+    {
+      "name": "2. Cast Vote",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"token\": \"{{token_hash}}\",\n  \"candidate_id\": \"CANDIDATE_A\"\n}"
+        },
+        "url": "{{base_url}}/cast-vote.php"
+      }
+    },
+    {
+      "name": "3. Cast Vote AGAIN (same token - expect 409)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"token\": \"{{token_hash}}\",\n  \"candidate_id\": \"CANDIDATE_B\"\n}"
+        },
+        "url": "{{base_url}}/cast-vote.php"
+      }
+    },
+    {
+      "name": "4. Results",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/results.php?election_id=1"
+      }
+    },
+    {
+      "name": "5. Verify Confirmation Code",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/verify-confirmation.php?code=PASTE_CODE_HERE"
+      }
+    }
+  ]
+}
