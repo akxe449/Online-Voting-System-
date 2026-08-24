@@ -72,7 +72,7 @@ try {
         ':code' => $confirmationCode,
     ]);
 
-    appendAuditLog($pdo, $confirmationCode);
+    appendAuditLog($pdo, $confirmationCode, $encryptedChoice);
 
     $pdo->commit();
     echo json_encode(['confirmation_code' => $confirmationCode]);

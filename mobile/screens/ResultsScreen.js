@@ -31,7 +31,7 @@ export default function ResultsScreen() {
     );
   }
 
-  const tallyEntries = Object.entries(results.tally);
+  const tallyEntries = results.tally; // already an array: [{ candidate_id, name, votes, percentage }, ...]
 
   return (
     <View style={styles.container}>
@@ -39,11 +39,11 @@ export default function ResultsScreen() {
       <Text style={styles.subtitle}>Total ballots cast: {results.total_ballots}</Text>
       <FlatList
         data={tallyEntries}
-        keyExtractor={([name]) => name}
-        renderItem={({ item: [name, count] }) => (
+        keyExtractor={(item) => String(item.candidate_id)}
+        renderItem={({ item }) => (
           <View style={styles.row}>
-            <Text style={styles.rowLabel}>{name}</Text>
-            <Text style={styles.rowCount}>{count}</Text>
+            <Text style={styles.rowLabel}>{item.name}</Text>
+            <Text style={styles.rowCount}>{item.votes} ({item.percentage}%)</Text>
           </View>
         )}
         ListEmptyComponent={<Text style={styles.helperText}>No votes cast yet.</Text>}

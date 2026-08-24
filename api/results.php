@@ -13,6 +13,19 @@ if (!$electionId) {
 }
 
 $pdo = getPDO();
+
+// Start from the full candidate list for this election, not just the ones
+// that received votes -- otherwise a candidate with 0 votes silently
+// vanishes from the response instead of showing 0.
+$candidatesStmt = $pdo->prepare('SELECT candidate_id, name FROM CANDIDATE WHERE election_id = :election_id');
+$candidatesStmt->execute([':election_id' => $electionId]);
+$candidates = $candidatesStmt->fetchAll();
+
+$counts = [];
+foreach ($candidates as $c) {
+    $counts[(string) $c['candidate_id']] = 0;
+}
+
 $stmt = $pdo->prepare(
     'SELECT b.encrypted_choice
      FROM BALLOT b
@@ -21,32 +34,35 @@ $stmt = $pdo->prepare(
 );
 $stmt->execute([':election_id' => $electionId]);
 
-$tally = [];
+$unrecognized = 0;
 foreach ($stmt->fetchAll() as $row) {
     $choice = decryptChoice($row['encrypted_choice']);
-    if ($choice === false) {
-        continue; // corrupted/tampered row -- shows up as a gap between this count and AUDIT_LOG
+    if ($choice === false || !array_key_exists($choice, $counts)) {
+        $unrecognized++; // corrupted/tampered row, or a candidate_id not in CANDIDATE
+        continue;
     }
-    $tally[$choice] = ($tally[$choice] ?? 0) + 1;
+    $counts[$choice]++;
 }
 
-// Resolve candidate_id -> name for a friendlier response (cheap since the
-// candidate list per election is always small)
-$namesStmt = $pdo->prepare('SELECT candidate_id, name FROM CANDIDATE WHERE election_id = :election_id');
-$namesStmt->execute([':election_id' => $electionId]);
-$names = [];
-foreach ($namesStmt->fetchAll() as $row) {
-    $names[(string) $row['candidate_id']] = $row['name'];
+$totalBallots = array_sum($counts);
+
+$tally = [];
+foreach ($candidates as $c) {
+    $count = $counts[(string) $c['candidate_id']];
+    $tally[] = [
+        'candidate_id' => (int) $c['candidate_id'],
+        'name' => $c['name'],
+        'votes' => $count,
+        'percentage' => $totalBallots > 0 ? round(($count / $totalBallots) * 100, 1) : 0,
+    ];
 }
 
-$namedTally = [];
-foreach ($tally as $candidateId => $count) {
-    $label = $names[$candidateId] ?? "Unknown candidate ({$candidateId})";
-    $namedTally[$label] = $count;
-}
+// Winner(s) first, ties broken by candidate_id for stable ordering
+usort($tally, fn($a, $b) => $b['votes'] <=> $a['votes'] ?: $a['candidate_id'] <=> $b['candidate_id']);
 
 echo json_encode([
     'election_id' => (int) $electionId,
-    'total_ballots' => array_sum($tally),
-    'tally' => $namedTally,
+    'total_ballots' => $totalBallots,
+    'unrecognized_ballots' => $unrecognized, // should always be 0 in an untampered election
+    'tally' => $tally,
 ]);
