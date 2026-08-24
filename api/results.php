@@ -1,6 +1,7 @@
 <?php
 // GET /results?election_id=1
 header('Content-Type: application/json');
+header('Access-Control-Allow-Origin: *'); // dev-only
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/lib/Crypto.php';
 
@@ -29,8 +30,23 @@ foreach ($stmt->fetchAll() as $row) {
     $tally[$choice] = ($tally[$choice] ?? 0) + 1;
 }
 
+// Resolve candidate_id -> name for a friendlier response (cheap since the
+// candidate list per election is always small)
+$namesStmt = $pdo->prepare('SELECT candidate_id, name FROM CANDIDATE WHERE election_id = :election_id');
+$namesStmt->execute([':election_id' => $electionId]);
+$names = [];
+foreach ($namesStmt->fetchAll() as $row) {
+    $names[(string) $row['candidate_id']] = $row['name'];
+}
+
+$namedTally = [];
+foreach ($tally as $candidateId => $count) {
+    $label = $names[$candidateId] ?? "Unknown candidate ({$candidateId})";
+    $namedTally[$label] = $count;
+}
+
 echo json_encode([
     'election_id' => (int) $electionId,
     'total_ballots' => array_sum($tally),
-    'tally' => $tally,
+    'tally' => $namedTally,
 ]);

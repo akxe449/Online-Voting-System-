@@ -1,6 +1,7 @@
 <?php
 // GET /verify-confirmation?code=ABC123
 header('Content-Type: application/json');
+header('Access-Control-Allow-Origin: *'); // dev-only
 require_once __DIR__ . '/config.php';
 
 $code = $_GET['code'] ?? null;

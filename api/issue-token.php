@@ -8,6 +8,7 @@
 // lock it behind an internal-only check) before Day 3.
 // ============================================================
 header('Content-Type: application/json');
+header('Access-Control-Allow-Origin: *'); // dev-only
 require_once __DIR__ . '/lib/IssueToken.php';
 
 $input = json_decode(file_get_contents('php://input'), true);
