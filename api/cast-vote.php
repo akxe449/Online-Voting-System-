@@ -16,6 +16,7 @@
 // exactly-one-ballot-per-token even under concurrent requests.
 // ============================================================
 header('Content-Type: application/json');
+header('Access-Control-Allow-Origin: *'); // dev-only
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/lib/AuditLog.php';
 require_once __DIR__ . '/lib/Crypto.php';
